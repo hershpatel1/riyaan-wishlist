@@ -5,73 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Riyaan's Gift List</title>
 <meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --red: #EF0107;
-    --red-dark: #B80005;
-    --navy: #063672;
-    --gold: #9C824A;
-    --bg: #fff7f5;
+    --red: #007D7D;          /* primary action fill (teal-dark, passes AA with white text) */
+    --red-dark: #006262;     /* teal-deep */
+    --navy: #006262;         /* headings: teal-deep */
+    --gold: #00B3B2;         /* teal hero, decorative */
+    --teal-surface: #E6F7F7;
+    --teal-light: #B2E8E8;
+    --carmine: #D93B5C;
+    --carmine-dark: #C33553;
+    --bg: #f4f5f7;
     --card: #ffffff;
-    --ink: #1f2430;
-    --muted: #6b7280;
-    --line: #f1d9d6;
-    --ok: #2E7D32;
+    --ink: #202124;
+    --muted: #757575;
+    --line: #e8eaed;
+    --ok: #007D7D;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+    font-family: "Open Sans", "Segoe UI", Arial, sans-serif;
     background: var(--bg);
     color: var(--ink);
     line-height: 1.5;
   }
 
   /* Header */
-  header {
-    background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
-    color: #fff;
-    padding: 28px 20px 64px;
-    position: relative;
-    text-align: center;
-    overflow: hidden;
-  }
-  header::before, header::after {
-    content: "";
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-  }
-  header::before { width: 220px; height: 220px; top: -80px; left: -60px; }
-  header::after  { width: 160px; height: 160px; bottom: -70px; right: 8%; }
+  header { max-width: 760px; margin: 0 auto; padding: 24px 16px 4px; position: relative; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--red); }
+  .hair { height: 1px; border: 0; background: linear-gradient(90deg, var(--carmine), var(--gold)); margin: 14px 0 16px; }
   .admin-btn {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    min-height: 44px;
-    padding: 0 16px;
-    border: 2px solid #fff;
-    border-radius: 999px;
-    background: transparent;
-    color: #fff;
-    font: inherit;
-    font-weight: 700;
-    cursor: pointer;
-    z-index: 2;
+    position: absolute; top: 12px; right: 16px; min-height: 44px; padding: 0 18px;
+    border: 2px solid var(--red); border-radius: 999px; background: transparent; color: var(--red);
+    font: inherit; font-weight: 600; cursor: pointer; z-index: 2;
   }
-  .admin-btn:hover, .admin-btn.active { background: #fff; color: var(--red-dark); }
-  .hero-emoji { font-size: 44px; margin-top: 30px; }
-  h1 { margin: 6px 0 4px; font-size: clamp(28px, 6vw, 42px); letter-spacing: -0.01em; }
-  header p { margin: 0 auto; max-width: 560px; font-size: 16px; opacity: 0.95; }
+  .admin-btn:hover, .admin-btn.active { background: var(--red); color: #fff; }
+  h1 { margin: 2px 0 8px; font-weight: 300; font-size: clamp(28px, 7vw, 40px); letter-spacing: -.015em; color: var(--ink); }
+  header p { margin: 0; max-width: 560px; font-size: 16px; color: var(--muted); }
 
-  main { max-width: 760px; margin: -40px auto 40px; padding: 0 16px; position: relative; z-index: 1; }
+  main { max-width: 760px; margin: 0 auto 40px; padding: 0 16px; }
 
   .notice {
     background: #fff3cd; border: 1px solid #ecd78a; color: #5b4a00;
     border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; font-size: 14px;
   }
-  .notice.admin { background: #e8f0fb; border-color: #bcd1ee; color: var(--navy); }
+  .notice.admin { background: var(--teal-surface); border-color: var(--teal-light); color: var(--navy); }
 
   .section-title { margin: 30px 0 12px; color: var(--navy); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
   .empty { background: var(--card); border-radius: 16px; padding: 28px 20px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); color: var(--navy); font-weight: 700; }
@@ -97,17 +78,17 @@
     transition: transform .15s ease, box-shadow .15s ease;
   }
   .item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-  .item.bought { border-color: #cfe8d0; background: #f7fcf7; }
+  .item.bought { border-color: var(--teal-light); background: var(--teal-surface); }
   .item-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
   .item-name { font-size: 18px; font-weight: 700; color: var(--navy); margin: 0; }
   .item-notes { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
   .badge {
     white-space: nowrap; font-size: 12px; font-weight: 700; letter-spacing: .04em;
     text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
-    background: #fde6e4; color: var(--red-dark);
+    background: var(--teal-surface); color: var(--red);
   }
-  .item.bought .badge { background: #e3f3e4; color: var(--ok); }
-  .buyer { font-size: 14px; color: var(--navy); background: #e8f0fb; border-radius: 10px; padding: 8px 12px; }
+  .item.bought .badge { background: #fff; color: var(--ok); }
+  .buyer { font-size: 14px; color: var(--navy); background: #fff; border-radius: 10px; padding: 8px 12px; }
   .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .btn {
     min-height: 44px; padding: 0 18px; border-radius: 999px; border: 2px solid var(--red);
@@ -115,10 +96,10 @@
     text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
   }
   .btn:hover { background: var(--red-dark); border-color: var(--red-dark); }
-  .btn.ghost { background: #fff; color: var(--red-dark); }
-  .btn.ghost:hover { background: #fff1f0; }
-  .btn.navy { background: var(--navy); border-color: var(--navy); }
-  .btn.navy:hover { background: #042a58; border-color: #042a58; }
+  .btn.ghost { background: #fff; color: var(--red); }
+  .btn.ghost:hover { background: var(--teal-surface); }
+  .btn.navy { background: var(--red); border-color: var(--red); }
+  .btn.navy:hover { background: var(--red-dark); border-color: var(--red-dark); }
   .tick {
     display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer;
     font-weight: 700; color: var(--navy);
@@ -128,7 +109,7 @@
 
   /* Modal */
   .overlay {
-    position: fixed; inset: 0; background: rgba(6,54,114,0.55);
+    position: fixed; inset: 0; background: rgba(32,33,36,0.55);
     display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
   }
   .overlay.open { display: flex; }
@@ -142,9 +123,9 @@
     width: 100%; min-height: 48px; font-size: 16px; padding: 0 14px;
     border: 2px solid var(--line); border-radius: 12px; font-family: inherit;
   }
-  .modal input:focus { outline: none; border-color: var(--red); }
+  .modal input:focus { outline: none; border-color: var(--gold); }
   .modal .row { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
-  .error { color: var(--red-dark); font-size: 14px; margin-top: 8px; min-height: 20px; font-weight: 700; }
+  .error { color: var(--carmine-dark); font-size: 14px; margin-top: 8px; min-height: 20px; font-weight: 700; }
 
   footer { text-align: center; color: var(--muted); font-size: 13px; padding: 0 16px 30px; }
 
@@ -157,8 +138,9 @@
 
 <header>
   <button class="admin-btn" id="adminBtn" type="button">Admin</button>
-  <div class="hero-emoji" aria-hidden="true">&#9917;</div>
+  <div class="eyebrow">Gift list</div>
   <h1>Riyaan's Gift List</h1>
+  <hr class="hair">
   <p>Thank you for thinking of Riyaan! Tick an item once you have bought it so nobody doubles up.</p>
 </header>
 
