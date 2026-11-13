@@ -76,6 +76,13 @@
   .section-title { margin: 30px 0 12px; color: var(--navy); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
   .empty { background: var(--card); border-radius: 16px; padding: 28px 20px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); color: var(--navy); font-weight: 700; }
 
+  .add-card { background: var(--card); border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 16px 18px; margin-top: 30px; }
+  .add-card h2 { margin: 0 0 12px; color: var(--navy); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+  .add-grid { display: grid; gap: 10px; }
+  .add-grid input { width: 100%; min-height: 48px; font-size: 16px; padding: 0 14px; border: 2px solid var(--line); border-radius: 12px; font-family: inherit; }
+  .add-grid input:focus { outline: none; border-color: var(--red); }
+  .btn.small { min-height: 36px; padding: 0 14px; font-size: 14px; }
+
   /* Items */
   .list { display: grid; gap: 14px; }
   .item {
@@ -165,6 +172,17 @@
 
   <div class="list" id="list"></div>
 
+  <section id="addSection" class="add-card" hidden>
+    <h2>Add a new item</h2>
+    <div class="add-grid">
+      <input type="text" id="addName" placeholder="Item name (e.g. Sun hat)" maxlength="80">
+      <input type="text" id="addNotes" placeholder="Notes (e.g. size, colour)" maxlength="120">
+      <input type="url" id="addUrl" placeholder="Link (https://...)" maxlength="500">
+      <div class="error" id="addError"></div>
+      <div><button class="btn navy" id="addBtn" type="button">Add to list</button></div>
+    </div>
+  </section>
+
   <section id="boughtSection" hidden>
     <h2 class="section-title">Bought</h2>
     <div class="list" id="boughtList"></div>
@@ -239,6 +257,18 @@ const LS_KEY = "riyaan-gifts-demo";
 const SESSION_KEY = "riyaan-admin";
 
 let purchases = {};          // { itemId: { buyer, boughtAt } }
+let customItems = {};        // { itemId: { name, notes, url, createdAt } } added by admin
+
+function allItems() {
+  const extra = Object.entries(customItems)
+    .map(([id, v]) => ({ id, name: v.name, notes: v.notes || "", url: v.url, custom: true, createdAt: v.createdAt }))
+    .sort((a, b) => {
+      const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+      const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+      return ta - tb;
+    });
+  return ITEMS.concat(extra);
+}
 let isAdmin = sessionStorage.getItem(SESSION_KEY) === "1";
 let pendingItem = null;
 
@@ -249,8 +279,18 @@ if (DEMO) {
   document.getElementById("demoNotice").hidden = false;
   const load = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } };
   const save = (d) => { try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch {} };
+  const loadC = () => { try { return JSON.parse(localStorage.getItem(LS_KEY + "-items")) || {}; } catch { return {}; } };
+  const saveC = (d) => { try { localStorage.setItem(LS_KEY + "-items", JSON.stringify(d)); } catch {} };
   backend = {
-    async init(onChange) { purchases = load(); onChange(); },
+    async init(onChange) { purchases = load(); customItems = loadC(); onChange(); },
+    async addItem(item, onChange) {
+      const c = loadC(); c[item.id] = { name: item.name, notes: item.notes, url: item.url, createdAt: Date.now() };
+      saveC(c); customItems = c; onChange();
+    },
+    async removeItem(item, onChange) {
+      const c = loadC(); delete c[item.id]; saveC(c); customItems = c;
+      const d = load(); delete d[item.id]; save(d); purchases = d; onChange();
+    },
     async buy(item, buyer, onChange) {
       const d = load();
       if (d[item.id]) return false;
@@ -264,7 +304,7 @@ if (DEMO) {
 } else {
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
   const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-  const { getFirestore, collection, doc, onSnapshot, runTransaction, deleteDoc, serverTimestamp } =
+  const { getFirestore, collection, doc, onSnapshot, runTransaction, deleteDoc, setDoc, serverTimestamp } =
     await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
   const app = initializeApp(firebaseConfig);
@@ -274,6 +314,12 @@ if (DEMO) {
 
   backend = {
     async init(onChange) {
+      onSnapshot(collection(db, "customItems"), (snap) => {
+        const c = {};
+        snap.forEach(s => { c[s.id] = s.data(); });
+        customItems = c;
+        onChange();
+      });
       onSnapshot(collection(db, "gifts"), (snap) => {
         const d = {};
         snap.forEach(s => { d[s.id] = s.data(); });
@@ -293,6 +339,13 @@ if (DEMO) {
     },
     async untick(item) {
       await deleteDoc(doc(db, "gifts", item.id));
+    },
+    async addItem(item) {
+      await setDoc(doc(db, "customItems", item.id), { name: item.name, notes: item.notes, url: item.url, createdAt: serverTimestamp() });
+    },
+    async removeItem(item) {
+      await deleteDoc(doc(db, "customItems", item.id));
+      await deleteDoc(doc(db, "gifts", item.id));
     }
   };
 }
@@ -311,6 +364,10 @@ function fmtDate(ts) {
 /* ---------- Render ---------- */
 function itemCard(item, p) {
   const bought = !!p;
+  const safeUrl = /^https?:\/\//i.test(item.url) ? item.url : "";
+  const removeBtn = (isAdmin && item.custom)
+    ? `<button class="btn ghost small" type="button" data-remove="${escapeHtml(item.id)}">Remove item</button>`
+    : "";
   const buyerLine = bought
     ? `<div class="buyer"><strong>Bought by:</strong> ${escapeHtml(p.buyer)}${p.boughtAt ? " (" + escapeHtml(fmtDate(p.boughtAt)) + ")" : ""}</div>`
     : "";
@@ -330,8 +387,9 @@ function itemCard(item, p) {
         ${buyerLine}
       </div>
       <div class="actions">
-        <a class="btn ghost" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">View item</a>
+        ${safeUrl ? `<a class="btn ghost" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer">View item</a>` : ""}
         ${action}
+        ${removeBtn}
       </div>
     </article>`;
 }
@@ -341,8 +399,9 @@ function render() {
   $("adminBtn").classList.toggle("active", isAdmin);
   $("adminNotice").hidden = !isAdmin;
 
-  const needed = ITEMS.filter(i => !purchases[i.id]);
-  const bought = ITEMS.filter(i => purchases[i.id]);
+  const items = allItems();
+  const needed = items.filter(i => !purchases[i.id]);
+  const bought = items.filter(i => purchases[i.id]);
 
   // Public list: only items still needed
   $("list").innerHTML = needed.length
@@ -350,6 +409,7 @@ function render() {
     : `<div class="empty">Everything has been bought. Thank you so much from all of us!</div>`;
 
   // Admin only: bought area with names
+  $("addSection").hidden = !isAdmin;
   $("boughtSection").hidden = !isAdmin;
   $("boughtList").innerHTML = bought.length
     ? bought.map(i => itemCard(i, purchases[i.id])).join("")
@@ -409,15 +469,39 @@ function confirmPw() {
 $("list").addEventListener("change", (e) => {
   const id = e.target.dataset.tick;
   if (!id || !e.target.checked) return;
-  openNameModal(ITEMS.find(i => i.id === id));
+  openNameModal(allItems().find(i => i.id === id));
 });
 $("boughtList").addEventListener("click", async (e) => {
   const id = e.target.dataset.untick;
   if (!id || !isAdmin) return;
-  const item = ITEMS.find(i => i.id === id);
+  const item = allItems().find(i => i.id === id);
   if (!confirm("Untick \"" + item.name + "\"? This removes the buyer's name and puts it back on the public list.")) return;
   try { await backend.untick(item, render); } catch (err) { console.error(err); alert("Could not untick. Please try again."); }
 });
+async function handleRemove(e) {
+  const id = e.target.dataset.remove;
+  if (!id || !isAdmin) return;
+  const item = allItems().find(i => i.id === id);
+  if (!item || !confirm("Remove \"" + item.name + "\" from the list entirely?")) return;
+  try { await backend.removeItem(item, render); } catch (err) { console.error(err); alert("Could not remove. Please try again."); }
+}
+$("list").addEventListener("click", handleRemove);
+$("boughtList").addEventListener("click", handleRemove);
+
+$("addBtn").addEventListener("click", async () => {
+  if (!isAdmin) return;
+  const name = $("addName").value.trim();
+  const notes = $("addNotes").value.trim();
+  let url = $("addUrl").value.trim();
+  if (!name) { $("addError").textContent = "Please enter an item name."; return; }
+  if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
+  const id = "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  try {
+    await backend.addItem({ id, name, notes, url }, render);
+    $("addName").value = ""; $("addNotes").value = ""; $("addUrl").value = ""; $("addError").textContent = "";
+  } catch (err) { console.error(err); $("addError").textContent = "Could not add. Please try again."; }
+});
+
 $("adminBtn").addEventListener("click", () => {
   if (isAdmin) {
     isAdmin = false;
